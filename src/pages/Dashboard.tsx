@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,21 +11,60 @@ import {
   AlertCircle,
   TrendingUp,
   Calendar,
-  Bell
+  Bell,
+  LogOut,
+  ArrowLeft,
+  FileText
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { MapSelector } from '@/components/MapSelector';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [location, setLocation] = useState('');
   const [fieldArea, setFieldArea] = useState('');
   const [unit, setUnit] = useState('acres');
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [showMapSelector, setShowMapSelector] = useState(false);
 
   const handleLocationUse = () => {
-    setLocation('Amreli, Gujarat');
-    // Simulate getting location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+        },
+        () => {
+          setLocation('Amreli, Gujarat'); // Fallback
+        }
+      );
+    } else {
+      setLocation('Amreli, Gujarat');
+    }
+  };
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setUploadedFile(file);
+    }
+  };
+
+  const handleLogout = () => {
+    navigate('/');
+  };
+
+  const handleMapLocationSelect = (selectedLocation: string) => {
+    setLocation(selectedLocation);
   };
 
   const handleAnalyze = () => {
@@ -45,6 +84,9 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
               <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
                 <Leaf className="w-6 h-6 text-primary-foreground" />
               </div>
@@ -53,9 +95,14 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Welcome, Farmer!</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Bell className="w-5 h-5 text-muted-foreground" />
               <Badge variant="secondary">2 alerts</Badge>
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -85,6 +132,10 @@ const Dashboard = () => {
                   <Button variant="field" onClick={handleLocationUse}>
                     <MapPin className="w-4 h-4" />
                   </Button>
+                  <Button variant="outline" onClick={() => setShowMapSelector(true)}>
+                    <MapPin className="w-4 h-4" />
+                    Map
+                  </Button>
                 </div>
               </div>
 
@@ -101,10 +152,14 @@ const Dashboard = () => {
                   <select 
                     value={unit} 
                     onChange={(e) => setUnit(e.target.value)}
-                    className="px-3 py-2 border border-input bg-background rounded-md"
+                    className="px-3 py-2 border border-input bg-background rounded-md text-foreground"
                   >
+                    <option value="sq_ft">Sq Ft</option>
+                    <option value="sq_m">Sq Meter</option>
                     <option value="acres">Acres</option>
                     <option value="hectares">Hectares</option>
+                    <option value="bigha">Bigha</option>
+                    <option value="katha">Katha</option>
                   </select>
                 </div>
               </div>
@@ -112,10 +167,24 @@ const Dashboard = () => {
               {/* Soil Health Card */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Soil Health Card</label>
-                <Button variant="earth" className="w-full justify-start">
-                  <Upload className="w-4 h-4" />
-                  Upload PDF
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button 
+                  variant={uploadedFile ? "harvest" : "earth"} 
+                  className="w-full justify-start" 
+                  onClick={handleFileUpload}
+                >
+                  {uploadedFile ? <FileText className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                  {uploadedFile ? uploadedFile.name : 'Upload PDF'}
                 </Button>
+                {uploadedFile && (
+                  <p className="text-xs text-success">✅ File uploaded successfully</p>
+                )}
               </div>
             </div>
 
@@ -307,6 +376,14 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Map Selector Modal */}
+        <MapSelector
+          isOpen={showMapSelector}
+          onClose={() => setShowMapSelector(false)}
+          onLocationSelect={handleMapLocationSelect}
+          currentLocation={location}
+        />
       </div>
     </div>
   );

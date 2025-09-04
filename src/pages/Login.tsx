@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Smartphone, Globe } from 'lucide-react';
+import { Leaf, Smartphone, Globe, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import heroImage from '@/assets/potato-field-hero.jpg';
 
 const Login = () => {
   const navigate = useNavigate();
   const [mobileNumber, setMobileNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
@@ -30,6 +32,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
+
       {/* Hero Background */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -57,8 +64,17 @@ const Login = () => {
           <Card className="backdrop-blur-sm bg-card/95 shadow-card border-0">
             <CardHeader>
               <CardTitle className="text-center text-foreground">
-                Welcome to Your Farm Assistant
+                {isRegistering ? 'Create New Account' : 'Welcome to Your Farm Assistant'}
               </CardTitle>
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  className="text-primary hover:text-primary/80 text-sm"
+                >
+                  {isRegistering ? 'Already have an account? Login' : 'New here? Register'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Google Login */}
@@ -101,8 +117,8 @@ const Login = () => {
                   size="lg"
                   className="w-full"
                 >
-                  <Smartphone className="w-5 h-5" />
-                  Login with Mobile
+                  {isRegistering ? <UserPlus className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}
+                  {isRegistering ? 'Register with Mobile' : 'Login with Mobile'}
                 </Button>
               </div>
 
