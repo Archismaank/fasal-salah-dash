@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,31 +22,37 @@ import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MapSelector } from '@/components/MapSelector';
 
+// Conversion factors from Square Meters to other units
+const conversionFactors: { [key: string]: number } = {
+  sq_m: 1,
+  sq_ft: 10.7639,
+  acres: 0.000247105,
+  hectares: 0.0001,
+  bigha: 0.000074752, // Note: This varies by region
+  katha: 0.00149505,  // Note: This varies by region
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [location, setLocation] = useState('');
-  const [fieldArea, setFieldArea] = useState('');
+  const [fieldAreaInSqM, setFieldAreaInSqM] = useState(0);
+  const [displayedArea, setDisplayedArea] = useState('0.00');
   const [unit, setUnit] = useState('acres');
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [showMapSelector, setShowMapSelector] = useState(false);
 
-  const handleLocationUse = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
-        },
-        () => {
-          setLocation('Amreli, Gujarat'); // Fallback
-        }
-      );
+  // Re-calculate and update the displayed area whenever the base area or the unit changes
+  useEffect(() => {
+    if (fieldAreaInSqM > 0) {
+      const convertedValue = fieldAreaInSqM * conversionFactors[unit];
+      setDisplayedArea(convertedValue.toFixed(2));
     } else {
-      setLocation('Amreli, Gujarat');
+      setDisplayedArea('0.00');
     }
-  };
+  }, [fieldAreaInSqM, unit]);
 
   const handleFileUpload = () => {
     fileInputRef.current?.click();
@@ -63,12 +69,16 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const handleMapLocationSelect = (selectedLocation: string) => {
+  // Receive location, coordinates, AND the calculated area from the map component
+  const handleMapLocationSelect = (selectedLocation: string, coordinates?: [number, number][], areaInSqMeters?: number) => {
     setLocation(selectedLocation);
+    if (areaInSqMeters) {
+      setFieldAreaInSqM(areaInSqMeters);
+    }
   };
 
   const handleAnalyze = () => {
-    if (location && fieldArea) {
+    if (location && fieldAreaInSqM > 0) {
       setIsAnalyzing(true);
       setTimeout(() => {
         setIsAnalyzing(false);
@@ -124,14 +134,11 @@ const Dashboard = () => {
                 <label className="text-sm font-medium text-foreground">Farm Location</label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter location"
+                    placeholder="Click map to select location & mark area"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    readOnly
                     className="flex-1"
                   />
-                  <Button variant="field" onClick={handleLocationUse}>
-                    <MapPin className="w-4 h-4" />
-                  </Button>
                   <Button variant="outline" onClick={() => setShowMapSelector(true)}>
                     <MapPin className="w-4 h-4" />
                     Map
@@ -139,23 +146,20 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Field Area */}
+              {/* Field Area (Calculated) */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Field Area</label>
+                <label className="text-sm font-medium text-foreground">Calculated Field Area</label>
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter area"
-                    value={fieldArea}
-                    onChange={(e) => setFieldArea(e.target.value)}
-                    className="flex-1"
-                  />
+                  <div className="flex-1 px-3 py-2 border border-input bg-muted rounded-md text-foreground">
+                    {displayedArea}
+                  </div>
                   <select 
                     value={unit} 
                     onChange={(e) => setUnit(e.target.value)}
                     className="px-3 py-2 border border-input bg-background rounded-md text-foreground"
                   >
-                    <option value="sq_ft">Sq Ft</option>
                     <option value="sq_m">Sq Meter</option>
+                    <option value="sq_ft">Sq Ft</option>
                     <option value="acres">Acres</option>
                     <option value="hectares">Hectares</option>
                     <option value="bigha">Bigha</option>
@@ -190,7 +194,7 @@ const Dashboard = () => {
 
             <Button
               onClick={handleAnalyze}
-              disabled={!location || !fieldArea || isAnalyzing}
+              disabled={!location || fieldAreaInSqM === 0 || isAnalyzing}
               variant="farm"
               size="lg"
               className="w-full md:w-auto"
@@ -223,7 +227,6 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="aspect-square bg-gradient-field rounded-lg flex items-center justify-center relative overflow-hidden">
-                  {/* Simulated satellite map */}
                   <div className="absolute inset-0">
                     <div className="w-full h-full bg-gradient-to-br from-success/20 via-success/30 to-warning/20 rounded-lg"></div>
                     <div className="absolute top-1/4 left-1/3 w-16 h-12 bg-warning/40 rounded-full"></div>
@@ -346,33 +349,6 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              {/* Alerts */}
-              <Card className="shadow-card border-warning/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Bell className="w-5 h-5 text-warning" />
-                    Important Alerts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">New Analysis Complete</p>
-                        <p className="text-xs text-muted-foreground">Satellite image from Sept 4th analyzed</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
-                      <Bell className="w-5 h-5 text-warning mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Fertilizer Reminder</p>
-                        <p className="text-xs text-muted-foreground">Application due this Friday</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         )}
@@ -390,3 +366,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { MapPin, X, Check, Trash2, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { MapContainer, TileLayer, Polygon, useMap, useMapEvents } from 'react-leaflet'
-import { LatLngExpression } from 'leaflet'
+import { useState, useEffect } from 'react';
+import { MapPin, X, Check, Trash2, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { MapContainer, TileLayer, Polygon, useMap, useMapEvents } from 'react-leaflet';
+import { LatLngExpression } from 'leaflet';
+import area from '@turf/area';
+import { polygon as turfPolygon, AllGeoJSON } from '@turf/helpers';
+
 
 // Helper component to handle map click events for drawing
 const MapClickHandler = ({ isMarking, onPointAdd }: { isMarking: boolean, onPointAdd: (point: LatLngExpression) => void }) => {
@@ -18,17 +21,20 @@ const MapClickHandler = ({ isMarking, onPointAdd }: { isMarking: boolean, onPoin
   return null;
 };
 
-// Helper component to change the map's view programmatically
+// Helper component to change the map's view programmatically without causing re-renders
 const ChangeMapView = ({ center, zoom }: { center: LatLngExpression, zoom: number }) => {
   const map = useMap();
-  map.setView(center, zoom);
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
   return null;
 };
 
+// Define the props for the component, including the callback function
 interface MapSelectorProps {
   isOpen: boolean
   onClose: () => void
-  onLocationSelect: (location: string, coordinates?: [number, number][]) => void
+  onLocationSelect: (location: string, coordinates?: [number, number][], areaInSqMeters?: number) => void
   currentLocation?: string
 }
 
@@ -42,23 +48,47 @@ export const MapSelector = ({ isOpen, onClose, onLocationSelect, currentLocation
 
   if (!isOpen) return null
 
-  // **UPDATED:** This function now updates the search bar as well
+  // Function to add a point when marking, limited to 4 points
   const handleAddPoint = (point: LatLngExpression) => {
+    if (polygonPoints.length >= 4) {
+      alert("You can only mark a maximum of 4 points.");
+      setIsMarking(false); // Automatically turn off marking mode
+      return;
+    }
+
     const newPoints = [...polygonPoints, point];
     setPolygonPoints(newPoints);
 
-    // Format the coordinates and update the search bar
+    // Update the search bar with the new coordinates string
     const coordinatesString = newPoints
       .map(p => `[${(p as number[])[0].toFixed(4)}, ${(p as number[])[1].toFixed(4)}]`)
       .join(', ');
     setSearchQuery(coordinatesString);
+
+    // If the 4th point was just added, automatically stop marking
+    if (newPoints.length === 4) {
+      setIsMarking(false);
+    }
   };
 
+  // Function to confirm the location, calculate area, and pass data back to the parent
   const handleLocationConfirm = () => {
-    onLocationSelect(searchQuery, polygonPoints as [number, number][])
-    onClose()
+    let calculatedArea = 0;
+    const finalPoints = polygonPoints as [number, number][];
+
+    // A valid polygon needs at least 3 points, and Turf needs a closed loop
+    if (finalPoints.length >= 3) {
+      const closedPolygonPoints = [...finalPoints, finalPoints[0]]; // Close the loop
+      const turfPoly = turfPolygon([closedPolygonPoints]);
+      calculatedArea = area(turfPoly as AllGeoJSON); // Calculate area in square meters
+    }
+    
+    // Call the parent component's function with all the data
+    onLocationSelect(searchQuery, finalPoints, calculatedArea);
+    onClose();
   }
 
+  // Function to get and set the user's current GPS location
   const handleUseCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -78,6 +108,7 @@ export const MapSelector = ({ isOpen, onClose, onLocationSelect, currentLocation
     }
   }
 
+  // Function to search for an address using OpenStreetMap's geocoding service
   const handleGeocodeSearch = async () => {
     if (!searchQuery) return;
     try {
@@ -98,7 +129,7 @@ export const MapSelector = ({ isOpen, onClose, onLocationSelect, currentLocation
     }
   };
 
-  // **NEW:** A dedicated function to clear both the polygon and the search bar
+  // Function to clear the marked area and search query
   const handleClearArea = () => {
     setPolygonPoints([]);
     setSearchQuery('');
@@ -151,14 +182,14 @@ export const MapSelector = ({ isOpen, onClose, onLocationSelect, currentLocation
               </Button>
               <Button
                 onClick={() => setIsMarking(!isMarking)}
-                disabled={!isLocationSet}
+                disabled={!isLocationSet || polygonPoints.length >= 4}
                 className="sm:col-span-1"
               >
                 {isMarking ? "Stop Marking" : "Mark Field Area"}
               </Button>
               <Button 
                 variant="destructive" 
-                onClick={handleClearArea} // **UPDATED:** Using the new clear handler
+                onClick={handleClearArea}
                 disabled={polygonPoints.length === 0}
                 className="sm:col-span-1"
               >
@@ -187,3 +218,4 @@ export const MapSelector = ({ isOpen, onClose, onLocationSelect, currentLocation
     </div>
   )
 }
+
