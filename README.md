@@ -1,73 +1,105 @@
-# Welcome to your Lovable project
+# 🌱 AI-Powered Potato Crop Growth Stage & Nutrient Health Management  
 
-## Project info
+## 📌 Problem Statement  
+Develop an AI solution that uses satellite imagery to simultaneously detect **growth stages of potato crops** and **map nutrient health** (e.g., Nitrogen levels).  
 
-**URL**: https://lovable.dev/projects/3bc7593a-8d9e-480b-acef-7dc35d98d93a
+The system should deliver **precise, stage-specific irrigation and fertilizer recommendations** to:  
+- Maximize yield  
+- Optimize resource use  
+- Reduce costs  
+- Improve long-term soil health  
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚜 Why It Matters  
+- Incorrect timing of irrigation or fertilization can drastically reduce yields.  
+- Inefficient nutrient management increases costs and degrades soil quality.  
+- An **integrated growth stage–nutrient health** approach ensures resources are applied at the **right time, in the right quantity, and to the right zones**.  
 
-**Use Lovable**
+---
+🚧 **Note:** We were only told to implement **30% of the project**.
+- Nutrient health mapping and the complete recommendation system using gen-ai are planned but not yet implemented.  
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3bc7593a-8d9e-480b-acef-7dc35d98d93a) and start prompting.
+## 📂 Data Sources & APIs  
+- 🌍 **Sentinel-2 satellite imagery**  
+- 🌱 **NDVI/NDRE vegetation indices**  
+- 🧪 **Soil fertility datasets**  
+- 🌦 **Historical yield and weather data** (optional for refinement)  
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🎯 Prototype Goals  
+- Process **sample satellite images** of potato fields  
+- Classify fields into **at least 3 growth stages**  
+- Highlight **low-fertility zones** using NDVI/NDRE analysis  
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🏗️ System Architecture  
 
-Follow these steps:
+```mermaid
+flowchart TD
+    A[Start] --> B[Collect Satellite Data]
+    B --> B1[Sentinel-2 Images via Copernicus API]
+    B --> B2[NDVI / NDRE Indices from SentinelHub API]
+    B --> B3[Optional: Soil Fertility & Weather Data]
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+    B1 --> C[Preprocessing]
+    B2 --> C
+    B3 --> C
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+    C --> D[Crop Growth Stage Detection Model]
+    D --> D1[Classify: Early Growth / Mid Growth / Bulking]
 
-# Step 3: Install the necessary dependencies.
-npm i
+    C --> E[Nutrient Health Analysis]
+    E --> E1[Detect Nitrogen Deficiency Zones using NDVI/NDRE]
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+    D1 --> F[Decision Engine]
+    E1 --> F
+
+    F --> G[Stage-Specific Recommendations]
+    G --> G1[Irrigation Plan: When & How Much]
+    G --> G2[Fertilizer Plan: What Type & Dosage]
+
+    G1 --> H[Output Dashboard / Report]
+    G2 --> H
+    H --> I[End]
 ```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🧠 Core Components  
 
-**Use GitHub Codespaces**
+### 🧠 AI & ML Models Used  
+- **MCLSTM (Multivariate Convolutional LSTM):** For capturing temporal + spatial crop growth changes  
+- **DeepCGM (Deep Crop Growth Model):** For growth stage classification & nutrient health estimation  
+- **Classification Model (Random Forest / XGBoost):** Fertilizer usage recommendation 
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 🔹 Data-Driven Insights  
+- NDVI/NDRE analysis for vegetation health.  
+- Soil fertility overlays for nutrient deficiencies.  
+- Historical yield-weather fusion for better predictions.  
 
-## What technologies are used for this project?
+### 🔹 Optimized Potato Yield  
+- Stage-specific irrigation recommendation.  
+- Nitrogen-level mapping for targeted fertilizer use.  
+- Precision farming for **higher yield with lower cost**.  
 
-This project is built with:
+---
+## 📊 Correlation Matrix
+Understanding the relationships between variables in our dataset.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+![Correlation Matrix](correlation_matrix.jpg)
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/3bc7593a-8d9e-480b-acef-7dc35d98d93a) and click on Share -> Publish.
+## 🧹 Pre-processed Data
+Sample of the cleaned and structured dataset used for training.
 
-## Can I connect a custom domain to my Lovable project?
+![Pre-processed Data](Satellite_image_preprocessed.jpg)
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## ✅ Model Output
+Accuracy results of the fertilizer recommendation model.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+![Model Accuracy](accuracy_data.jpg)
